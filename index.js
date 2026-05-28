@@ -296,10 +296,49 @@
     // ---- Install ----
     window.fetch = patchedFetch;
 
+    // ---- Check server plugin ----
+    async function checkServerPlugin() {
+        try {
+            const res = await originalFetch(`${SAVE_APPEND_URL}/status`);
+            if (res.ok) {
+                console.log('%c[IncSave]%c Server plugin detected ✓', 'color:#4caf50;font-weight:bold', '');
+                return true;
+            }
+        } catch {}
+        console.warn('%c[IncSave]%c Server plugin NOT detected ✗', 'color:#f44336;font-weight:bold', '');
+        const msg = [
+            '增量保存服务端插件未安装，只支持 gzip 压缩模式。',
+            '',
+            '请将 server/incremental-save-server.js 复制到酒馆 plugins/ 目录后重启：',
+            '',
+            'Docker:',
+            '  docker cp server/incremental-save-server.js <容器名>:/home/node/app/plugins/',
+            '  docker restart <容器名>',
+            '',
+            '本地/云服务器:',
+            '  cp server/incremental-save-server.js <酒馆目录>/plugins/',
+            '  # 重启酒馆',
+            '',
+            '插件地址: https://github.com/Ye-HHH/st-incremental-save-plugin',
+        ].join('\n');
+        console.warn(msg);
+        // Try toastr if available
+        try {
+            if (typeof toastr !== 'undefined') {
+                toastr.warning('增量保存服务端插件未安装。请将 server/incremental-save-server.js 放到 plugins/ 目录后重启酒馆。详见 F12 Console。', 'IncSave');
+            }
+        } catch {}
+        return false;
+    }
+
+    // Run check after a short delay (let toastr initialize)
+    setTimeout(checkServerPlugin, 2000);
+
     if (settings.verbose) {
         console.log('%c[IncSave]%c Installed — incremental save + gzip fallback', 'color:#4caf50;font-weight:bold', '');
         console.log(`[IncSave] Incremental: ${SAVE_APPEND_URL}`);
         console.log(`[IncSave] Gzip threshold: ${fmtBytes(settings.gzipMinBytes)}`);
+        console.log('[IncSave] Checking server plugin...');
     }
 
     // ---- Settings panel (optional) ----
